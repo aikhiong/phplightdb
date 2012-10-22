@@ -11,6 +11,13 @@ Sample
 	
 	global $DB, $DBNAME, $DBHOST, $DBUID, $DBPWD, $DBINSTANCE, $DBTIMEZONE;
 	
+	/*
+		Database Drivers:
+		LIGHTDB_NAME_MYSQLI 	=> mysqli
+		LIGHTDB_NAME_MYSQL		=> mysql
+		LIGHTDB_NAME_ORACLE		=> oracle
+	*/
+	
 	$DBNAME = LIGHTDB_NAME_MYSQLI;
 	$DBHOST = '127.0.0.1';
 	
