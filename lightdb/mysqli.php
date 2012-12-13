@@ -183,20 +183,22 @@ class LightDB_MySQLi extends LightDB_abstract {
 	
 	
 	public function execute(){
-		$str_types = array();
-		
-		foreach($this->bind_types as $param_name => $param_type){
-			$str_types[] = $param_type;
+		if(!empty($this->bind_types)){
+			$str_types = array();
+			
+			foreach($this->bind_types as $param_name => $param_type){
+				$str_types[] = $param_type;
+			}
+			
+			
+			$bind_arr = array($this->stmt, implode('', $str_types));
+			
+			foreach($this->bind as $param_name => $param_value){
+				$bind_arr[] = &$param_value;	// mysqli_stmt_bind_param expects parameter to be passed by reference
+			}
+			
+			call_user_func_array('mysqli_stmt_bind_param', $bind_arr);
 		}
-		
-		
-		$bind_arr = array($this->stmt, implode('', $str_types));
-		
-		foreach($this->bind as $param_name => $param_value){
-			$bind_arr[] = &$param_value;	// mysqli_stmt_bind_param expects parameter to be passed by reference
-		}
-		
-		call_user_func_array('mysqli_stmt_bind_param', $bind_arr);
 		
 		
 		$ok = mysqli_stmt_execute($this->stmt);
