@@ -98,6 +98,11 @@ class LightDB {
 		return $this->db->prepare($sql);
 	}
 	
+	public function stmt_close(){
+		if($this->dbname == LIGHTDB_NAME_MYSQLI){
+			return $this->db->stmt_close();
+		}
+	}
 	
 	public function bind($param_name, $param_value, $param_type=null){
 		return $this->db->bind($param_name, $param_value, $param_type);

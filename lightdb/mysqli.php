@@ -4,6 +4,7 @@ include_once(dirname(__FILE__).'/lightdb_abstract.php');
 class LightDB_MySQLi extends LightDB_abstract {
 	protected $timezone;
 	protected $max_packet_size;		// in MB
+	protected $sql;
 	protected $bind_types;
 	
 	function __construct($host, $uid, $pwd, $instance, $tz='+00:00'){
@@ -81,12 +82,6 @@ class LightDB_MySQLi extends LightDB_abstract {
 	
 	
 	public function close(){
-		$ok = mysqli_stmt($this->stmt);
-		if(mysqli_stmt_errno($this->stmt)){
-			$this->err_message = array('code' => mysqli_stmt_errno($this->stmt), 'message' => mysqli_stmt_error($this->stmt));
-			return false;
-		}
-		
 		
 		$ok = mysqli_close($this->conn);
 		if($ok === false){
@@ -138,6 +133,12 @@ class LightDB_MySQLi extends LightDB_abstract {
 	
 	public function prepare($sql){
 		$q = preg_replace('/([a-z0-9_]+[\s]*=[\s]*){1,1}(:[A-Za-z0-9_]+){1,1}/', '$1 ?', $sql);
+		$q = preg_replace('/(:[A-Za-z0-9_]+){1,1}/', '?', $q); // for sql insert
+		
+		if($this->debug === true){
+			echo '<div>prepare() : '.$sql.'</div>';
+			echo '<div>prepared() : '.$q.'</div>';
+		}
 		
 		$this->stmt = mysqli_prepare($this->conn, $q);
 		if($this->stmt === false){
@@ -145,14 +146,24 @@ class LightDB_MySQLi extends LightDB_abstract {
 			return false;
 		}
 			
-		if($this->debug === true){
-			echo '<div>prepare() : '.$sql.'</div>';
-			echo '<div>prepared() : '.$q.'</div>';
-		}
 		
+		$this->sql = $sql;
+		$this->bind_types = array();
 		$this->bind = array();
 		
 		return $this->stmt;
+	}
+	
+	
+	public function stmt_close(){
+		
+		$ok = mysqli_stmt_close($this->stmt);
+		if($ok === false){
+			$this->err_message = $this->db_error();
+			return false;
+		}
+		
+		return true;
 	}
 	
 	
@@ -183,6 +194,7 @@ class LightDB_MySQLi extends LightDB_abstract {
 	
 	
 	public function execute(){
+		
 		if(!empty($this->bind_types)){
 			$str_types = array();
 			
@@ -194,8 +206,9 @@ class LightDB_MySQLi extends LightDB_abstract {
 			$bind_arr = array($this->stmt, implode('', $str_types));
 			
 			foreach($this->bind as $param_name => $param_value){
-				$bind_arr[] = &$param_value;	// mysqli_stmt_bind_param expects parameter to be passed by reference
+				$bind_arr[] = &$this->bind[$param_name];	// mysqli_stmt_bind_param expects parameter to be passed by reference
 			}
+			
 			
 			call_user_func_array('mysqli_stmt_bind_param', $bind_arr);
 		}
@@ -208,13 +221,17 @@ class LightDB_MySQLi extends LightDB_abstract {
 		}
 		
 		
-		$this->rs = mysqli_stmt_get_result($this->stmt);
-		if(mysqli_stmt_errno($this->stmt)){
-			$this->err_message = array('code' => mysqli_stmt_errno($this->stmt), 'message' => mysqli_stmt_error($this->stmt));
-			return false;
+		if(strpos(strtolower($this->sql), 'select') === 0){
+			$this->rs = mysqli_stmt_get_result($this->stmt);
+			if(mysqli_stmt_errno($this->stmt)){
+				$this->err_message = array('code' => mysqli_stmt_errno($this->stmt), 'message' => mysqli_stmt_error($this->stmt));
+				return false;
+			}
+			
+			return $this->rs;
 		}
 		
-		return $this->rs;
+		return true;
 	}
 	
 	
