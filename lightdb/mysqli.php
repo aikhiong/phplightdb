@@ -155,9 +155,13 @@ class LightDB_MySQLi extends LightDB_abstract {
 	}
 	
 	
-	public function stmt_close(){
+	public function stmt_close($stmt=null){
+		if($stmt){
+			$ok = mysqli_stmt_close($stmt);
+		} else {
+			$ok = mysqli_stmt_close($this->stmt);
+		}
 		
-		$ok = mysqli_stmt_close($this->stmt);
 		if($ok === false){
 			$this->err_message = $this->db_error();
 			return false;
@@ -225,6 +229,73 @@ class LightDB_MySQLi extends LightDB_abstract {
 			$this->rs = mysqli_stmt_get_result($this->stmt);
 			if(mysqli_stmt_errno($this->stmt)){
 				$this->err_message = array('code' => mysqli_stmt_errno($this->stmt), 'message' => mysqli_stmt_error($this->stmt));
+				return false;
+			}
+			
+			return $this->rs;
+		}
+		
+		return true;
+	}
+	
+	
+	public function stmt_bind($stmt, $param_name, $param_value, $param_type=null, &$bind_types, &$bind){
+		if($param_type == LIGHTDB_PARAM_TYPE_INT){
+			$bind_types[$param_name] = 'i';
+			
+		} else if($param_type == LIGHTDB_PARAM_TYPE_BIGINT || $param_type == LIGHTDB_PARAM_TYPE_FLOAT){
+			$bind_types[$param_name] = 'd';
+			
+		} else if($param_type == LIGHTDB_PARAM_TYPE_STRING){
+			$bind_types[$param_name] = 's';
+			
+		} else {
+			$this->err_message = $this->set_error(LIGHTDB_ERROR_INVALID_PARAM_TYPE);
+			return false;
+		}
+		
+		if($this->debug === true){
+			echo '<div>bind('.$param_name.', '.$param_value.', \''.$this->bind_types[$param_name].'\')</div>';
+		}
+		
+		$bind[$param_name] = $param_value;
+		
+		return true;
+	}
+	
+	
+	public function stmt_execute($stmt, $bind_types, $bind, $get_result=false){
+		
+		if(!empty($bind_types)){
+			$str_types = array();
+			
+			foreach($bind_types as $param_name => $param_type){
+				$str_types[] = $param_type;
+			}
+			
+			
+			$bind_arr = array($stmt, implode('', $str_types));
+			
+			foreach($bind as $param_name => $param_value){
+				$bind_arr[] = &$bind[$param_name];	// mysqli_stmt_bind_param expects parameter to be passed by reference
+			}
+			
+			
+			call_user_func_array('mysqli_stmt_bind_param', $bind_arr);
+		}
+		
+		
+		$ok = mysqli_stmt_execute($stmt);
+		if(mysqli_stmt_errno($stmt)){
+			$this->err_message = array('code' => mysqli_stmt_errno($stmt), 'message' => mysqli_stmt_error($stmt));
+			return false;
+		}
+		
+		
+		if($get_result === true){
+			$this->rs = mysqli_stmt_get_result($stmt);
+			if(mysqli_stmt_errno($stmt)){
+				$this->err_message = array('code' => mysqli_stmt_errno($stmt), 'message' => mysqli_stmt_error($stmt));
 				return false;
 			}
 			
