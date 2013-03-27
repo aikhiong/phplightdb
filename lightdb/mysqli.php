@@ -328,6 +328,9 @@ class LightDB_MySQLi extends LightDB_abstract {
 		
 		$this->fetched = $grid;
 		
+		if($grid == null)
+			return false;
+			
 		return $grid;
 	}
 	
