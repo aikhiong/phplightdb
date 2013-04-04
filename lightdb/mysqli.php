@@ -5,6 +5,7 @@ class LightDB_MySQLi extends LightDB_abstract {
 	protected $timezone;
 	protected $max_packet_size;		// in MB
 	protected $sql;
+	protected $bind;
 	protected $bind_types;
 	
 	function __construct($host, $uid, $pwd, $instance, $tz='+00:00'){
@@ -12,6 +13,7 @@ class LightDB_MySQLi extends LightDB_abstract {
 		
 		$this->timezone = $tz;
 		$this->max_packet_size = 0;
+		$this->bind = array();
 		$this->bind_types = array();
 	}
 	

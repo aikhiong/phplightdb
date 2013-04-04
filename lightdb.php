@@ -133,6 +133,13 @@ class LightDB {
 	}
 	
 	
+	public function bind_query($sql, $bind=array()){
+		if($this->dbname == LIGHTDB_NAME_MYSQL){
+			return $this->db->bind_query($sql, $bind);
+		}
+	}
+	
+	
 	public function fetch_assoc($fetch_rs=null){
 		return $this->db->fetch_assoc($fetch_rs);
 	}

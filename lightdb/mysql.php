@@ -4,12 +4,14 @@ include_once(dirname(__FILE__).'/lightdb_abstract.php');
 class LightDB_MySQL extends LightDB_abstract {
 	protected $timezone;
 	protected $max_packet_size;		// in MB
+	protected $bind;
 	
 	function __construct($host, $uid, $pwd, $instance, $tz='+00:00'){
 		parent::__construct($host, $uid, $pwd, $instance);
 		
 		$this->timezone = $tz;
 		$this->max_packet_size = 0;
+		$this->bind = array();
 	}
 	
 	public function get_error(){
@@ -146,16 +148,16 @@ class LightDB_MySQL extends LightDB_abstract {
 	
 	public function bind($param_name, $param_value, $param_type=null){
 		if($param_type == LIGHTDB_PARAM_TYPE_INT){
-			$this->stmt = str_replace($param_name, '%d', $this->stmt);
+			$this->stmt = preg_replace('/([\w_]+)\s*=\s*('.$param_name.')/', '\1 = %d', $this->stmt, 1);
 			
 		} else if($param_type == LIGHTDB_PARAM_TYPE_BIGINT){
-			$this->stmt = str_replace($param_name, '%0.0f', $this->stmt);
+			$this->stmt = preg_replace('/([\w_]+)\s*=\s*('.$param_name.')/', '\1 = %0.0f', $this->stmt, 1);
 			
 		} else if($param_type == LIGHTDB_PARAM_TYPE_FLOAT){
-			$this->stmt = str_replace($param_name, '%f', $this->stmt);
+			$this->stmt = preg_replace('/([\w_]+)\s*=\s*('.$param_name.')/', '\1 = %f', $this->stmt, 1);
 			
 		} else if($param_type == LIGHTDB_PARAM_TYPE_STRING){
-			$this->stmt = str_replace($param_name, '\'%s\'', $this->stmt);
+			$this->stmt = preg_replace('/([\w_]+)\s*=\s*('.$param_name.')/', '\1 = \'%s\'', $this->stmt, 1);
 			
 		} else {
 			$this->err_message = $this->set_error(LIGHTDB_ERROR_INVALID_PARAM_TYPE);
@@ -211,6 +213,45 @@ class LightDB_MySQL extends LightDB_abstract {
 	
 	public function query($sql){
 		$this->rs = mysql_query($sql, $this->conn);
+		if($this->rs === false){
+			$this->err_message = $this->db_error();
+			return false;
+		}
+		
+		return $this->rs;
+	}
+	
+	
+	public function bind_query($sql, $bind=array()){
+		/****
+			$sql = "select * from table_a 
+					where col_int = %d
+						and col_varchar = '%s'
+						and col_float = %f
+						and col_bigint = '%0.0f' ";
+		****/
+		
+		
+		$escape_string = array();
+		foreach($bind as $param_name => $param_value){
+			$escape_string[] = 'mysql_real_escape_string(\''.$param_value.'\', $this->conn)';
+		}
+		
+		if(!empty($escape_string) > 0){
+			$ex = '$q = sprintf($sql, '.implode(', ', $escape_string).');';
+			if($this->debug === true){
+				echo '<div>'.$ex.'</div>';
+			}
+			
+			eval($ex);
+		} else {
+			$q = $sql;
+		}
+		
+		if($this->debug === true)
+			echo '<div>execute() : '.$q.'</div>';
+		
+		$this->rs = mysql_query($q, $this->conn);
 		if($this->rs === false){
 			$this->err_message = $this->db_error();
 			return false;

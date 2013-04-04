@@ -86,8 +86,6 @@ class LightDB_Oracle extends LightDB_abstract {
 			echo '<div>prepare() : '.$sql.'</div>';
 		}
 		
-		$this->bind = array();
-		
 		return $this->stmt;
 	}
 	
@@ -99,7 +97,6 @@ class LightDB_Oracle extends LightDB_abstract {
 			echo '<div>bind('.$param_name.', '.$param_value.') :</div>';
 		}
 		
-		$this->bind[$param_name] = $param_value;
 		return true;
 	}
 	

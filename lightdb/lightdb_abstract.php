@@ -15,7 +15,6 @@ abstract class LightDB_abstract {
 	protected $sql;
 	protected $stmt;
 	protected $rs;
-	protected $bind;
 	protected $fetched;
 	
 	protected $host;
@@ -51,7 +50,6 @@ abstract class LightDB_abstract {
 		
 		$this->debug = false;
 		
-		$this->bind = array();
 		$this->fetched = array();
 		
 	}
