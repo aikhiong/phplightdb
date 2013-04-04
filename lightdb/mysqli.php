@@ -42,7 +42,7 @@ class LightDB_MySQLi extends LightDB_abstract {
 		}
 
 		
-		$rs = mysqli_query($this->conn, 'SET character_set_client=utf8');
+		/* $rs = mysqli_query($this->conn, 'SET character_set_client=utf8');
 		if($rs === false){
 			$this->err_message = $this->db_error();
 			return false;
@@ -57,6 +57,13 @@ class LightDB_MySQLi extends LightDB_abstract {
 
 
 		$rs = mysqli_query($this->conn, 'SET character_set_results=utf8');
+		if($rs === false){
+			$this->err_message = $this->db_error();
+			return false;
+		} */
+		
+		
+		$rs = mysqli_set_charset ($this->conn, 'utf8');
 		if($rs === false){
 			$this->err_message = $this->db_error();
 			return false;
@@ -310,6 +317,45 @@ class LightDB_MySQLi extends LightDB_abstract {
 	
 	public function query($sql){
 		$this->rs = mysqli_query($this->conn, $sql);
+		if($this->rs === false){
+			$this->err_message = $this->db_error();
+			return false;
+		}
+		
+		return $this->rs;
+	}
+	
+	
+	public function bind_query($sql, $bind=array()){
+		/****
+			$sql = "select * from table_a 
+					where col_int = %d
+						and col_varchar = '%s'
+						and col_float = %f
+						and col_bigint = '%0.0f' ";
+		****/
+		
+		
+		$escape_string = array();
+		foreach($bind as $param_name => $param_value){
+			$escape_string[] = 'mysqli_real_escape_string($this->conn, \''.$param_value.'\')';
+		}
+		
+		if(!empty($escape_string) > 0){
+			$ex = '$q = sprintf($sql, '.implode(', ', $escape_string).');';
+			if($this->debug === true){
+				echo '<div>'.$ex.'</div>';
+			}
+			
+			eval($ex);
+		} else {
+			$q = $sql;
+		}
+		
+		if($this->debug === true)
+			echo '<div>execute() : '.$q.'</div>';
+		
+		$this->rs = mysqli_query($this->conn, $q);
 		if($this->rs === false){
 			$this->err_message = $this->db_error();
 			return false;

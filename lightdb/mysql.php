@@ -45,9 +45,8 @@ class LightDB_MySQL extends LightDB_abstract {
 			return false;
 		}
 
-
-
-		$rs = mysql_query('SET character_set_client=utf8', $this->conn);
+		
+		/* $rs = mysql_query('SET character_set_client=utf8', $this->conn);
 		if($rs === false){
 			$this->err_message = $this->db_error();
 			return false;
@@ -62,6 +61,13 @@ class LightDB_MySQL extends LightDB_abstract {
 
 
 		$rs = mysql_query('SET character_set_results=utf8', $this->conn);
+		if($rs === false){
+			$this->err_message = $this->db_error();
+			return false;
+		} */
+		
+		
+		$rs = mysql_set_charset('utf8', $this->conn);
 		if($rs === false){
 			$this->err_message = $this->db_error();
 			return false;

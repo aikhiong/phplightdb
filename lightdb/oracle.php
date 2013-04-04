@@ -90,6 +90,22 @@ class LightDB_Oracle extends LightDB_abstract {
 	}
 	
 	
+	public function stmt_close($stmt=null){
+		if($stmt){
+			$ok = oci_free_statement($stmt);
+		} else {
+			$ok = oci_free_statement($this->stmt);
+		}
+		
+		if($ok === false){
+			$this->err_message = $this->db_error();
+			return false;
+		}
+		
+		return true;
+	}
+	
+	
 	public function bind($param_name, $param_value, $param_type=null){
 		oci_bind_by_name($this->stmt, $param_name, $param_value);
 		
@@ -114,9 +130,37 @@ class LightDB_Oracle extends LightDB_abstract {
 			}
 		}
 		
-		$this->rs = $this->stmt;
+		return $this->stmt;
+	}
+	
+	
+	public function stmt_bind($stmt, $param_name, $param_value){
+		oci_bind_by_name($stmt, $param_name, $param_value);
 		
-		return $this->rs;
+		if($this->debug === true){
+			echo '<div>bind('.$param_name.', '.$param_value.')</div>';
+		}
+		
+		return true;
+	}
+	
+	
+	public function stmt_execute($stmt){
+		
+		if($this->transaction_mode === true){
+			if(!oci_execute($stmt, OCI_DEFAULT)){
+				$this->err_message = $this->db_error($stmt);
+				return false;
+			}
+		} else {
+			if(!oci_execute($stmt)){
+				$this->err_message = $this->db_error($stmt);
+				return false;
+			}
+		}
+		
+		
+		return $stmt;
 	}
 	
 	
@@ -138,7 +182,7 @@ class LightDB_Oracle extends LightDB_abstract {
 		if($fetch_rs) {
 			$grid = oci_fetch_assoc($fetch_rs);
 		} else {
-			$grid = oci_fetch_assoc($this->rs);
+			$grid = oci_fetch_assoc($this->stmt);
 		}
 		
 		
