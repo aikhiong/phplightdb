@@ -167,11 +167,58 @@ class LightDB_Oracle extends LightDB_abstract {
 	public function query($sql){
 		$this->rs = oci_parse($this->conn, $sql);
 		
-		if(!oci_execute($this->stmt)){
-			$this->err_message = $this->db_error($this->stmt);
+		if(!oci_execute($this->rs)){
+			$this->err_message = $this->db_error($this->rs);
 			return false;
 		}
 		
+		
+		return $this->rs;
+	}
+	
+	
+	public function bind_query($sql, $bind=array()){
+		/****
+			$sql = "select * from table_a 
+					where col_int = %d
+						and col_varchar = '%s'
+						and col_float = %f
+						and col_bigint = '%0.0f' ";
+		****/
+		
+		
+		$escape_string = array();
+		foreach($bind as $param_name => $param_value){
+			$escape_string[] = 'addslashes(\''.$param_value.'\')';
+		}
+		
+		if(!empty($escape_string) > 0){
+			$ex = '$q = sprintf($sql, '.implode(', ', $escape_string).');';
+			if($this->debug === true){
+				echo '<div>'.$ex.'</div>';
+			}
+			
+			eval($ex);
+		} else {
+			$q = $sql;
+		}
+		
+		if($this->debug === true)
+			echo '<div>execute() : '.$q.'</div>';
+		
+		$this->rs = mysqli_query($this->conn, $q);
+		if($this->rs === false){
+			$this->err_message = $this->db_error();
+			return false;
+		}
+		
+		
+		$this->rs = oci_parse($this->conn, $q);
+		
+		if(!oci_execute($this->rs)){
+			$this->err_message = $this->db_error($this->rs);
+			return false;
+		}
 		
 		return $this->rs;
 	}

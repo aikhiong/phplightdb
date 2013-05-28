@@ -115,7 +115,9 @@ class LightDB {
 	
 	
 	public function stmt_bind($stmt, $param_name, $param_value, $param_type=null, &$bind_types, &$bind){
-		if($this->dbname == LIGHTDB_NAME_MYSQLI){
+		if($this->dbname == LIGHTDB_NAME_MYSQL){
+			return $this->db->stmt_bind($stmt, $param_name, $param_value, $param_type, $bind_types, $bind);
+		} else if($this->dbname == LIGHTDB_NAME_MYSQLI){
 			return $this->db->stmt_bind($stmt, $param_name, $param_value, $param_type, $bind_types, $bind);
 		} else if($this->dbname == LIGHTDB_NAME_ORACLE){
 			return $this->db->stmt_bind($stmt, $param_name, $param_value);
@@ -124,7 +126,9 @@ class LightDB {
 	
 	
 	public function stmt_execute($stmt, $bind_types=array(), $bind=array(), $get_result=false){
-		if($this->dbname == LIGHTDB_NAME_MYSQLI){
+		if($this->dbname == LIGHTDB_NAME_MYSQL){
+			return $this->db->stmt_execute($stmt, $bind_types, $bind);
+		} else if($this->dbname == LIGHTDB_NAME_MYSQLI){
 			return $this->db->stmt_execute($stmt, $bind_types, $bind, $get_result);
 		} else if($this->dbname == LIGHTDB_NAME_ORACLE){
 			return $this->db->stmt_execute($stmt);
