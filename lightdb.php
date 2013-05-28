@@ -142,9 +142,7 @@ class LightDB {
 	
 	
 	public function bind_query($sql, $bind=array()){
-		if($this->dbname == LIGHTDB_NAME_MYSQL || $this->dbname == LIGHTDB_NAME_MYSQLI){
-			return $this->db->bind_query($sql, $bind);
-		}
+		return $this->db->bind_query($sql, $bind);
 	}
 	
 	
