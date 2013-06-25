@@ -407,6 +407,14 @@ class LightDB_MySQLi extends LightDB_abstract {
 	}
 	
 	
+	public function date_format($format){
+		switch($format){
+			default:
+				return "%d/%m/%Y";
+		}
+	}
+	
+	
 	public function db_error($handle=null){
 		//$handle => link_identifier
 		if($handle == null){

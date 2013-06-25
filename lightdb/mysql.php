@@ -161,34 +161,104 @@ class LightDB_MySQL extends LightDB_abstract {
 	
 	
 	public function bind($param_name, $param_value, $param_type=null){
-		if($param_type == LIGHTDB_PARAM_TYPE_INT){
+		if(substr(strtolower($this->stmt), 0, 6) == "insert" || substr(strtolower($this->stmt), 0, 4) == "call"){
+			switch($param_type){
+				case LIGHTDB_PARAM_TYPE_INT:
+					$this->stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %d', $this->stmt, 1);
+					break;
+				case LIGHTDB_PARAM_TYPE_BIGINT:
+					$this->stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %0.0f', $this->stmt, 1);
+					break;
+				case LIGHTDB_PARAM_TYPE_FLOAT:
+					$this->stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %f', $this->stmt, 1);
+					break;
+				case LIGHTDB_PARAM_TYPE_STRING:
+					$this->stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 \'%s\'', $this->stmt, 1);
+					
+					// e.g. insert into ... values(str_to_date(:date, '%d/%m/%Y'))
+					$this->stmt = preg_replace('/(\(|,)\s*([\w_]+\()('.$param_name.')/', '\1 \2 \'%s\'', $this->stmt, 1);
+					break;
+				default:
+					$this->err_message = $this->set_error(LIGHTDB_ERROR_INVALID_PARAM_TYPE);
+					return false;
+			}
+			
+		} else {
+			switch($param_type){
+				case LIGHTDB_PARAM_TYPE_INT:
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %d', $this->stmt, 1);
+					
+					// e.g. col_name = col_name + :param
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([\w_]+)\s*(\+|-|\*|\/)\s*('.$param_name.')/', '\1 \2 \3 \4 %d', $this->stmt, 1);
+					
+					// e.g. col_name = :param + col_name
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')\s*(\+|-|\*|\/)\s*([\w_]+)/', '\1 \2 %d \4 \5', $this->stmt, 1);
+					break;
+					
+				case LIGHTDB_PARAM_TYPE_BIGINT:
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %0.0f', $this->stmt, 1);
+					
+					// e.g. col_name = col_name + :param
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([\w_]+)\s*(\+|-|\*|\/)\s*('.$param_name.')/', '\1 \2 \3 \4 %0.0f', $this->stmt, 1);
+					
+					// e.g. col_name = :param + col_name
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')\s*(\+|-|\*|\/)\s*([\w_]+)/', '\1 \2 %0.0f \4 \5', $this->stmt, 1);
+					break;
+					
+				case LIGHTDB_PARAM_TYPE_FLOAT:
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %f', $this->stmt, 1);
+					
+					// e.g. col_name = col_name + :param
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([\w_]+)\s*(\+|-|\*|\/)\s*('.$param_name.')/', '\1 \2 \3 \4 %f', $this->stmt, 1);
+					
+					// e.g. col_name = :param + col_name
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')\s*(\+|-|\*|\/)\s*([\w_]+)/', '\1 \2 %f \4 \5', $this->stmt, 1);
+					break;
+				
+				case LIGHTDB_PARAM_TYPE_STRING:
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=|like|not like)\s*('.$param_name.')/', '\1 \2 \'%s\'', $this->stmt, 1);
+					
+					// e.g. col_name = str_to_date(:date, '%d/%m/%Y')
+					$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([\w_]+\()('.$param_name.')/', '\1 \2 \3\'%s\'', $this->stmt, 1);
+					break;
+				default:
+					$this->err_message = $this->set_error(LIGHTDB_ERROR_INVALID_PARAM_TYPE);
+					return false;
+			}
+			
+		}
+		
+		
+		/* if($param_type == LIGHTDB_PARAM_TYPE_INT){
 			if(substr(strtolower($this->stmt), 0, 6) == "insert"){
 				$this->stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %d', $this->stmt, 1);
 			} else { 
-				$this->stmt = preg_replace('/([\w_]+)\s*=\s*('.$param_name.')/', '\1 = %d', $this->stmt, 1);
+				$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %d', $this->stmt, 1);
 			}
 		} else if($param_type == LIGHTDB_PARAM_TYPE_BIGINT){
 			if(substr(strtolower($this->stmt), 0, 6) == "insert"){
 				$this->stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %0.0f', $this->stmt, 1);
 			} else { 
-				$this->stmt = preg_replace('/([\w_]+)\s*=\s*('.$param_name.')/', '\1 = %0.0f', $this->stmt, 1);
+				$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %0.0f', $this->stmt, 1);
 			}
 		} else if($param_type == LIGHTDB_PARAM_TYPE_FLOAT){
 			if(substr(strtolower($this->stmt), 0, 6) == "insert"){
 				$this->stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %f', $this->stmt, 1);
 			} else { 
-				$this->stmt = preg_replace('/([\w_]+)\s*=\s*('.$param_name.')/', '\1 = %f', $this->stmt, 1);
+				$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %f', $this->stmt, 1);
 			}
 		} else if($param_type == LIGHTDB_PARAM_TYPE_STRING){
 			if(substr(strtolower($this->stmt), 0, 6) == "insert"){
 				$this->stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 \'%s\'', $this->stmt, 1);
+				$this->stmt = preg_replace('/(\(|,)\s*([a-z0-9_]+\()*('.$param_name.')/', '\1 \2 \'%s\'', $this->stmt, 1);
 			} else { 
-				$this->stmt = preg_replace('/([\w_]+)\s*=\s*('.$param_name.')/', '\1 = \'%s\'', $this->stmt, 1);
+				$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 \'%s\'', $this->stmt, 1);
+				$this->stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([a-z0-9_]+\()*('.$param_name.')/', '\1 \2 \3\'%s\'', $this->stmt, 1);
 			}
 		} else {
 			$this->err_message = $this->set_error(LIGHTDB_ERROR_INVALID_PARAM_TYPE);
 			return false;
-		}
+		} */
 		
 		if($this->debug === true){
 			echo '<div>bind('.$param_name.', '.$param_value.') : '.$this->stmt.'</div>';
@@ -241,7 +311,74 @@ class LightDB_MySQL extends LightDB_abstract {
 		$cache_id = md5($stmt);
 		$cached_stmt = $this->stmt_cache[$cache_id];
 		
-		if($param_type == LIGHTDB_PARAM_TYPE_INT){
+		if(substr(strtolower($stmt), 0, 6) == "insert" || substr(strtolower($stmt), 0, 4) == "call"){
+			switch($param_type){
+				case LIGHTDB_PARAM_TYPE_INT:
+					$cached_stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %d', $cached_stmt, 1);
+					break;
+				case LIGHTDB_PARAM_TYPE_BIGINT:
+					$cached_stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %0.0f', $cached_stmt, 1);
+					break;
+				case LIGHTDB_PARAM_TYPE_FLOAT:
+					$cached_stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %f', $cached_stmt, 1);
+					break;
+				case LIGHTDB_PARAM_TYPE_STRING:
+					$cached_stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 \'%s\'', $cached_stmt, 1);
+					
+					// e.g. insert into ... values(str_to_date(:date, '%d/%m/%Y'))
+					$cached_stmt = preg_replace('/(\(|,)\s*([\w_]+\()('.$param_name.')/', '\1 \2 \'%s\'', $cached_stmt, 1);
+					break;
+				default:
+					$this->err_message = $this->set_error(LIGHTDB_ERROR_INVALID_PARAM_TYPE);
+					return false;
+			}
+			
+		} else {
+			switch($param_type){
+				case LIGHTDB_PARAM_TYPE_INT:
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %d', $cached_stmt, 1);
+					
+					// e.g. col_name = col_name + :param
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([\w_]+)\s*(\+|-|\*|\/)\s*('.$param_name.')/', '\1 \2 \3 \4 %d', $cached_stmt, 1);
+					
+					// e.g. col_name = :param + col_name
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')\s*(\+|-|\*|\/)\s*([\w_]+)/', '\1 \2 %d \4 \5', $cached_stmt, 1);
+					break;
+					
+				case LIGHTDB_PARAM_TYPE_BIGINT:
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %0.0f', $cached_stmt, 1);
+					
+					// e.g. col_name = col_name + :param
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([\w_]+)\s*(\+|-|\*|\/)\s*('.$param_name.')/', '\1 \2 \3 \4 %0.0f', $cached_stmt, 1);
+					
+					// e.g. col_name = :param + col_name
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')\s*(\+|-|\*|\/)\s*([\w_]+)/', '\1 \2 %0.0f \4 \5', $cached_stmt, 1);
+					break;
+					
+				case LIGHTDB_PARAM_TYPE_FLOAT:
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')/', '\1 \2 %f', $cached_stmt, 1);
+					
+					// e.g. col_name = col_name + :param
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([\w_]+)\s*(\+|-|\*|\/)\s*('.$param_name.')/', '\1 \2 \3 \4 %f', $cached_stmt, 1);
+					
+					// e.g. col_name = :param + col_name
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*('.$param_name.')\s*(\+|-|\*|\/)\s*([\w_]+)/', '\1 \2 %f \4 \5', $cached_stmt, 1);
+					break;
+				
+				case LIGHTDB_PARAM_TYPE_STRING:
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=|like|not like)\s*('.$param_name.')/', '\1 \2 \'%s\'', $cached_stmt, 1);
+					
+					// e.g. col_name = str_to_date(:date, '%d/%m/%Y')
+					$cached_stmt = preg_replace('/([\w_]+)\s*(=|!=|<>|>|<|>=|<=)\s*([\w_]+\()('.$param_name.')/', '\1 \2 \3\'%s\'', $cached_stmt, 1);
+					break;
+				default:
+					$this->err_message = $this->set_error(LIGHTDB_ERROR_INVALID_PARAM_TYPE);
+					return false;
+			}
+			
+		}
+		
+		/*if($param_type == LIGHTDB_PARAM_TYPE_INT){
 			if(substr(strtolower($stmt), 0, 6) == "insert"){
 				$cached_stmt = preg_replace('/(\(|,)\s*('.$param_name.')/', '\1 %d', $cached_stmt, 1);
 			} else { 
@@ -268,7 +405,7 @@ class LightDB_MySQL extends LightDB_abstract {
 		} else {
 			$this->err_message = $this->set_error(LIGHTDB_ERROR_INVALID_PARAM_TYPE);
 			return false;
-		}
+		}*/
 		
 		if($this->debug === true){
 			echo '<div>bind('.$param_name.', '.$param_value.') : '.$cached_stmt.'</div>';
@@ -408,6 +545,14 @@ class LightDB_MySQL extends LightDB_abstract {
 	
 	public function getdate(){
 		return 'curdate()';
+	}
+	
+	
+	public function date_format($format){
+		switch($format){
+			default:
+				return "%%d/%%m/%%Y";
+		}
 	}
 	
 	

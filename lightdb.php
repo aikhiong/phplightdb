@@ -170,6 +170,9 @@ class LightDB {
 		return $this->db->getdate();
 	}
 	
+	public function date_format($format){
+		return $this->db->date_format($format);
+	}
 	
 	protected function set_error($err_code){
 		if($err_code == LIGHTDB_ERROR_INVALID_DBNAME){
